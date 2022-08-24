@@ -10,6 +10,7 @@ import {
 } from "type-graphql";
 import { User } from "../entities/User";
 
+import { RequiredEntityData } from "@mikro-orm/core";
 import argon2 from "argon2";
 
 @InputType()
@@ -70,7 +71,7 @@ export class UserResolver {
     const user = em.create(User, {
       username: options.username,
       password: hashedPassword,
-    });
+    } as RequiredEntityData<User>);
     try {
       await em.persistAndFlush(user);
     } catch (err) {
@@ -99,6 +100,8 @@ export class UserResolver {
       username: options.username.toLowerCase(),
     });
 
+    console.log(req);
+
     if (!user) {
       return {
         errors: [{ field: "username", message: "that username doesn't exist" }],
@@ -113,7 +116,7 @@ export class UserResolver {
       };
     }
 
-    req.session = user.id;
+    // req.session.userId = user.id;
 
     return { user };
   }

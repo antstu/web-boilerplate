@@ -1,27 +1,4 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -35,15 +12,19 @@ const type_graphql_1 = require("type-graphql");
 const hello_1 = require("./resolvers/hello");
 const post_1 = require("./resolvers/post");
 const user_1 = require("./resolvers/user");
-const redis = __importStar(require("redis"));
 const express_session_1 = __importDefault(require("express-session"));
+const redis_1 = require("redis");
 const constants_1 = require("./constants");
 const main = async () => {
     const orm = await core_1.MikroORM.init(mikro_orm_config_1.default);
     await orm.getMigrator().up();
     const app = (0, express_1.default)();
+    app.set("trust proxy", true);
+    app.set("Access-Control-Allow-Origin", "https://studio.apollographql.com");
+    app.set("Access-Control-Allow-Credentials", true);
     let RedisStore = require("connect-redis")(express_session_1.default);
-    let redisClient = redis.createClient();
+    let redisClient = (0, redis_1.createClient)({ legacyMode: true });
+    redisClient.connect().catch(console.error);
     app.use((0, express_session_1.default)({
         name: "qid",
         store: new RedisStore({
@@ -66,9 +47,14 @@ const main = async () => {
             validate: false,
         }),
         context: ({ req, res }) => ({ em: orm.em.fork(), req, res }),
+        introspection: !constants_1.__prod__,
     });
+    const cors = {
+        credentials: true,
+        origin: "https://studio.apollographql.com",
+    };
     await apolloServer.start();
-    apolloServer.applyMiddleware({ app });
+    apolloServer.applyMiddleware({ app, cors });
     app.listen(4000, () => {
         console.log("server started on localhost:4000");
     });

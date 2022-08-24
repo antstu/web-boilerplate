@@ -11,9 +11,8 @@ import { HelloResolver } from "./resolvers/hello";
 import { PostResolver } from "./resolvers/post";
 import { UserResolver } from "./resolvers/user";
 
-import * as redis from "redis";
-
 import session from "express-session";
+import { createClient } from "redis";
 import { __prod__ } from "./constants";
 import { MyContext } from "./types";
 
@@ -25,8 +24,13 @@ const main = async () => {
 
   const app = express();
 
+  app.set("trust proxy", true);
+  app.set("Access-Control-Allow-Origin", "https://studio.apollographql.com");
+  app.set("Access-Control-Allow-Credentials", true);
+
   let RedisStore = require("connect-redis")(session);
-  let redisClient = redis.createClient();
+  let redisClient = createClient({ legacyMode: true });
+  redisClient.connect().catch(console.error);
 
   app.use(
     session({
@@ -54,11 +58,18 @@ const main = async () => {
       validate: false,
     }),
     context: ({ req, res }): MyContext => ({ em: orm.em.fork(), req, res }),
+    introspection: !__prod__,
   });
+
+  const cors = {
+    // add for apollo studio
+    credentials: true,
+    origin: "https://studio.apollographql.com",
+  };
 
   await apolloServer.start();
 
-  apolloServer.applyMiddleware({ app });
+  apolloServer.applyMiddleware({ app, cors });
 
   app.listen(4000, () => {
     console.log("server started on localhost:4000");
