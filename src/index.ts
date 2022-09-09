@@ -24,9 +24,16 @@ const main = async () => {
 
   const app = express();
 
-  app.set("trust proxy", true);
+  app.set("trust proxy", 1);
   app.set("Access-Control-Allow-Origin", "https://studio.apollographql.com");
   app.set("Access-Control-Allow-Credentials", true);
+
+  // app.use(
+  //   cors({
+  //     origin: ["http://localhost:4000", "https://studio.apollographql.com"],
+  //     credentials: true,
+  //   })
+  // );
 
   let RedisStore = require("connect-redis")(session);
   let redisClient = createClient({ legacyMode: true });
@@ -37,14 +44,16 @@ const main = async () => {
       name: "qid",
       store: new RedisStore({
         client: redisClient,
-        disableTouch: true,
+        // disableTouch: true,
         // disableTTL: true,
       }),
       cookie: {
         maxAge: 1000 * 60 * 60 * 24 * 365 * 10, // 10 years
         httpOnly: true,
-        secure: __prod__, //cookie only works in https
-        sameSite: "lax", // csrf
+        // secure: __prod__, //cookie only works in https
+        // sameSite: "lax", // csrf
+        sameSite: "none",
+        secure: true,
       },
       saveUninitialized: false,
       secret: "keyboard cat",
@@ -64,7 +73,7 @@ const main = async () => {
   const cors = {
     // add for apollo studio
     credentials: true,
-    origin: "https://studio.apollographql.com",
+    origin: ["http://localhost:4000", "https://studio.apollographql.com"],
   };
 
   await apolloServer.start();
@@ -72,7 +81,9 @@ const main = async () => {
   apolloServer.applyMiddleware({ app, cors });
 
   app.listen(4000, () => {
-    console.log("server started on localhost:4000");
+    console.log(
+      `🚀 Server ready at http://localhost:4000${apolloServer.graphqlPath}`
+    );
   });
 };
 

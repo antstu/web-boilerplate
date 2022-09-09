@@ -19,7 +19,7 @@ const main = async () => {
     const orm = await core_1.MikroORM.init(mikro_orm_config_1.default);
     await orm.getMigrator().up();
     const app = (0, express_1.default)();
-    app.set("trust proxy", true);
+    app.set("trust proxy", 1);
     app.set("Access-Control-Allow-Origin", "https://studio.apollographql.com");
     app.set("Access-Control-Allow-Credentials", true);
     let RedisStore = require("connect-redis")(express_session_1.default);
@@ -29,13 +29,12 @@ const main = async () => {
         name: "qid",
         store: new RedisStore({
             client: redisClient,
-            disableTouch: true,
         }),
         cookie: {
             maxAge: 1000 * 60 * 60 * 24 * 365 * 10,
             httpOnly: true,
-            secure: constants_1.__prod__,
-            sameSite: "lax",
+            sameSite: "none",
+            secure: true,
         },
         saveUninitialized: false,
         secret: "keyboard cat",
@@ -51,12 +50,12 @@ const main = async () => {
     });
     const cors = {
         credentials: true,
-        origin: "https://studio.apollographql.com",
+        origin: ["http://localhost:4000", "https://studio.apollographql.com"],
     };
     await apolloServer.start();
     apolloServer.applyMiddleware({ app, cors });
     app.listen(4000, () => {
-        console.log("server started on localhost:4000");
+        console.log(`🚀 Server ready at http://localhost:4000${apolloServer.graphqlPath}`);
     });
 };
 main().catch((error) => {
